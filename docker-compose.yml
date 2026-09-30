@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: elnouzalaa_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: elnouzalaa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - elnouzalaa_network
+
+  cache:
+    image: redis:7-alpine
+    container_name: elnouzalaa_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - elnouzalaa_network
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  elnouzalaa_network:
+    driver: bridge
