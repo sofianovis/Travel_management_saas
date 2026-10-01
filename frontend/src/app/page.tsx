@@ -9,6 +9,7 @@ import Link from "next/link";
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const [financeData, setFinanceData] = useState<any[]>([]);
+  const [dashboardSettings, setDashboardSettings] = useState<any>({ monthlyTarget: 5000000 });
   const [customersData, setCustomersData] = useState<any[]>([]);
   const [packagesData, setPackagesData] = useState<any[]>([]);
   const [timeFilter, setTimeFilter] = useState("الكل"); // الكل, هذا الشهر, هذا الأسبوع, اليوم
@@ -25,22 +26,33 @@ export default function Home() {
     
     const fetchDashboardData = async () => {
       try {
-        const [fRes, cRes, pRes, bRes] = await Promise.all([
+        const [fRes, cRes, pRes, bRes, sRes] = await Promise.all([
           fetch("http://localhost:4000/finance", { cache: "no-store" }),
           fetch("http://localhost:4000/customers", { cache: "no-store" }),
           fetch("http://localhost:4000/umrah", { cache: "no-store" }),
-          fetch("http://localhost:4000/bookings", { cache: "no-store" })
+          fetch("http://localhost:4000/bookings", { cache: "no-store" }),
+          fetch("http://localhost:4000/settings", { cache: "no-store" })
         ]);
         
         const fData = await fRes.json();
         const cData = await cRes.json();
         const pData = await pRes.json();
         const bData = await bRes.json();
+        const sData = await sRes.json();
         
         setFinanceData(fData);
         setCustomersData(cData);
-        // Combine general bookings with hajj packages for global stats
         setPackagesData([...pData, ...bData]);
+        
+        // Save settings to local storage so the rest of the page can use it
+        if(sData && sData.length > 0) {
+           const finalSettings = {
+             monthlyTarget: sData.find((x: any) => x.key === 'monthlyTarget')?.value || "5000000",
+             agencyName: sData.find((x: any) => x.key === 'agencyName')?.value || "وكالة السياحة"
+           };
+           localStorage.setItem("elnouzalaa_settings", JSON.stringify(finalSettings));
+           setDashboardSettings(finalSettings);
+        }
       } catch (err) {
         console.error("Dashboard fetch error", err);
       }
@@ -151,7 +163,7 @@ export default function Home() {
   const maxChartValue = Math.max(...chartData.map(d => d.amount), 10000); 
 
   // Monthly Sales Target (Read from settings)
-  const settingsObj = JSON.parse(localStorage.getItem("elnouzalaa_settings") || "{}");
+  const settingsObj = dashboardSettings;
   const monthlyTarget = parseFloat(settingsObj.monthlyTarget) || 5000000;
   const currentMonthRevenue = financeData.filter(t => {
     const d = new Date(t.date);
