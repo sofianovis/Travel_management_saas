@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell, Search, Menu, Users, Plane, CreditCard, ChevronLeft } from "lucide-react";
+import { Bell, Search, Menu, Users, Plane, CreditCard, Ticket } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,12 +9,14 @@ export function Navbar() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<{type: string, id: string, title: string, subtitle: string, url: string}[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  const [agencyName, setAgencyName] = useState("النزلاء للسياحة");
+  const [agencyName, setAgencyName] = useState("وكالة السياحة");
 
   useEffect(() => {
+    // Read cached settings
     const s = JSON.parse(localStorage.getItem("elnouzalaa_settings") || "{}");
     if (s.agencyName) setAgencyName(s.agencyName);
   }, []);
@@ -29,56 +31,96 @@ export function Navbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setQuery(val);
-    
-    if (val.trim().length < 2) {
-      setResults([]);
-      setShowDropdown(false);
-      return;
-    }
-
-    const lowerVal = val.toLowerCase();
-    const searchResults: typeof results = [];
-
-    // Search Customers
-    const customers = JSON.parse(localStorage.getItem("elnouzalaa_customers") || "[]");
-    customers.forEach((c: any) => {
-      if (c.name?.toLowerCase().includes(lowerVal) || c.phone?.includes(val) || c.passport?.toLowerCase().includes(lowerVal)) {
-        searchResults.push({ type: "عميل", id: c.id, title: c.name, subtitle: c.phone || "بدون هاتف", url: `/customers` });
+  // Debounced Search from Backend
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (query.trim().length < 2) {
+        setResults([]);
+        setShowDropdown(false);
+        return;
       }
-    });
 
-    // Search Packages/Umrah
-    const packages = JSON.parse(localStorage.getItem("elnouzalaa_umrah") || "[]");
-    packages.forEach((p: any) => {
-      if (p.name?.toLowerCase().includes(lowerVal) || p.id?.toLowerCase().includes(lowerVal)) {
-        searchResults.push({ type: "رحلة", id: p.id, title: p.name, subtitle: `انطلاق: ${p.departure}`, url: `/hajj-umrah` });
-      }
-      // Also search pilgrims inside packages
-      p.pilgrims?.forEach((pilgrim: any) => {
-        if (pilgrim.name?.toLowerCase().includes(lowerVal)) {
-          searchResults.push({ type: "معتمر", id: pilgrim.id, title: pilgrim.name, subtitle: `في رحلة: ${p.name}`, url: `/hajj-umrah` });
+      setIsSearching(true);
+      setShowDropdown(true);
+
+      try {
+        const lowerVal = query.toLowerCase();
+        
+        // Fetch all needed entities
+        const [cRes, pRes, bRes, fRes] = await Promise.all([
+          fetch("http://localhost:4000/customers"),
+          fetch("http://localhost:4000/umrah"),
+          fetch("http://localhost:4000/bookings"),
+          fetch("http://localhost:4000/finance")
+        ]);
+
+        const customers = await cRes.json();
+        const packages = await pRes.json();
+        const bookings = await bRes.json();
+        const finance = await fRes.json();
+
+        const searchResults: typeof results = [];
+
+        // Search Customers
+        if (Array.isArray(customers)) {
+          customers.forEach((c: any) => {
+            if (c.name?.toLowerCase().includes(lowerVal) || c.phone?.includes(query) || c.passport?.toLowerCase().includes(lowerVal)) {
+              searchResults.push({ type: "عميل", id: c.id, title: c.name, subtitle: c.phone || "بدون رقم", url: `/customers` });
+            }
+          });
         }
-      });
-    });
 
-    // Search Finance
-    const finance = JSON.parse(localStorage.getItem("elnouzalaa_finance") || "[]");
-    finance.forEach((t: any) => {
-      if (t.id?.toLowerCase().includes(lowerVal) || t.ref?.toLowerCase().includes(lowerVal) || t.notes?.toLowerCase().includes(lowerVal) || t.supplierName?.toLowerCase().includes(lowerVal)) {
-        searchResults.push({ type: "مالية", id: t.id, title: t.notes || t.category || "حركة مالية", subtitle: `المبلغ: ${t.amount} DZD`, url: `/finance` });
+        // Search Umrah Packages & Pilgrims
+        if (Array.isArray(packages)) {
+          packages.forEach((p: any) => {
+            if (p.name?.toLowerCase().includes(lowerVal) || p.id?.toLowerCase().includes(lowerVal)) {
+              searchResults.push({ type: "عمرة", id: p.id, title: p.name, subtitle: `انطلاق: ${p.departure}`, url: `/hajj-umrah` });
+            }
+            p.pilgrims?.forEach((pilgrim: any) => {
+              if (pilgrim.name?.toLowerCase().includes(lowerVal) || pilgrim.passport?.toLowerCase().includes(lowerVal)) {
+                searchResults.push({ type: "معتمر", id: pilgrim.id, title: pilgrim.name, subtitle: `في رحلة: ${p.name}`, url: `/hajj-umrah` });
+              }
+            });
+          });
+        }
+
+        // Search General Bookings
+        if (Array.isArray(bookings)) {
+          bookings.forEach((b: any) => {
+            if (b.customerName?.toLowerCase().includes(lowerVal) || b.pnr?.toLowerCase().includes(lowerVal) || b.id?.toLowerCase().includes(lowerVal)) {
+              searchResults.push({ type: "حجز", id: b.id, title: `حجز ${b.type} - ${b.customerName}`, subtitle: `PNR: ${b.pnr || 'N/A'}`, url: `/bookings` });
+            }
+          });
+        }
+
+        // Search Finance
+        if (Array.isArray(finance)) {
+          finance.forEach((t: any) => {
+            if (t.id?.toLowerCase().includes(lowerVal) || t.ref?.toLowerCase().includes(lowerVal) || t.notes?.toLowerCase().includes(lowerVal)) {
+              searchResults.push({ type: "معاملة", id: t.id, title: t.notes || t.category || "معاملة مالية", subtitle: `القيمة: ${t.amount} DZD`, url: `/finance` });
+            }
+          });
+        }
+
+        setResults(searchResults.slice(0, 10)); // Max 10 results
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsSearching(false);
       }
-    });
+    };
 
-    setResults(searchResults.slice(0, 8)); // Max 8 results
-    setShowDropdown(true);
-  };
+    const timerId = setTimeout(() => {
+      fetchSearchResults();
+    }, 300);
+
+    return () => clearTimeout(timerId);
+  }, [query]);
 
   const getIcon = (type: string) => {
     if (type === "عميل" || type === "معتمر") return <Users size={16} className="text-blue-500" />;
-    if (type === "رحلة") return <Plane size={16} className="text-purple-500" />;
+    if (type === "عمرة") return <Plane size={16} className="text-purple-500" />;
+    if (type === "حجز") return <Ticket size={16} className="text-orange-500" />;
     return <CreditCard size={16} className="text-green-500" />;
   };
 
@@ -95,17 +137,19 @@ export function Navbar() {
           <input 
             type="text" 
             value={query}
-            onChange={handleSearch}
-            onFocus={() => { if(results.length > 0) setShowDropdown(true) }}
-            placeholder="بحث شامل عن: عميل، هاتف، جواز، رحلة، رقم مالي..." 
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => { if(query.trim().length >= 2) setShowDropdown(true) }}
+            placeholder="البحث الذكي: ابحث عن عميل، جواز سفر، حجز، PNR، أو معاملة مالية..." 
             className="pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white w-full transition-all font-medium"
           />
           
           {/* Dropdown Results */}
-          {showDropdown && (
+          {showDropdown && query.trim().length >= 2 && (
             <div className="absolute top-full mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden flex flex-col">
-              {results.length > 0 ? (
-                <div className="max-h-[300px] overflow-y-auto">
+              {isSearching ? (
+                <div className="p-4 text-center text-sm text-gray-500">جاري البحث في قاعدة البيانات...</div>
+              ) : results.length > 0 ? (
+                <div className="max-h-[350px] overflow-y-auto">
                   {results.map((r, i) => (
                     <button 
                       key={i} 
@@ -115,7 +159,7 @@ export function Navbar() {
                       <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                         {getIcon(r.type)}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 overflow-hidden">
                         <p className="font-bold text-gray-900 text-sm truncate">{r.title}</p>
                         <p className="text-xs text-gray-500 truncate" dir="ltr">{r.subtitle}</p>
                       </div>
@@ -127,7 +171,7 @@ export function Navbar() {
                 <div className="p-4 text-center text-sm text-gray-500">لا توجد نتائج مطابقة لـ "{query}"</div>
               )}
               <div className="bg-gray-50 p-2 text-center text-[10px] text-gray-400 font-bold border-t border-gray-100">
-                ابحث برقم الهاتف، رقم الجواز، اسم العميل، أو مرجع الدفع
+                البحث الذكي المتطور يبحث في كافة أقسام النظام في نفس الوقت
               </div>
             </div>
           )}
@@ -144,7 +188,7 @@ export function Navbar() {
         
         <div className="text-left hidden md:block">
           <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{agencyName}</p>
-          <p className="text-[10px] text-primary text-right font-bold">الفرع الرئيسي</p>
+          <p className="text-[10px] text-primary text-right font-bold">المدير العام</p>
         </div>
       </div>
     </header>
