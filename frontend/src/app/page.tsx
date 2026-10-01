@@ -45,10 +45,10 @@ export default function Home() {
         setPackagesData([...pData, ...bData]);
         
         // Save settings to local storage so the rest of the page can use it
-        if(sData && sData.length > 0) {
+        if(sData) {
            const finalSettings = {
-             monthlyTarget: sData.find((x: any) => x.key === 'monthlyTarget')?.value || "5000000",
-             agencyName: sData.find((x: any) => x.key === 'agencyName')?.value || "وكالة السياحة"
+             monthlyTarget: sData.monthlyTarget || 5000000,
+             agencyName: sData.agencyName || "وكالة السياحة"
            };
            localStorage.setItem("elnouzalaa_settings", JSON.stringify(finalSettings));
            setDashboardSettings(finalSettings);
