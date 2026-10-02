@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
+import { UmrahOperationsModal } from "@/components/UmrahOperationsModal";
 import { Navbar } from "@/components/Navbar";
 import { Moon, Plus, Search, Edit2, Trash2, Users, PlaneTakeoff, Building2, MapPin, CalendarDays, CheckCircle, Clock, MessageCircle, FileText } from "lucide-react";
 
@@ -48,6 +49,7 @@ export default function UmrahPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [financeTransactions, setFinanceTransactions] = useState<any[]>([]);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [operationsPkg, setOperationsPkg] = useState<any>(null);
   const [selectedBookingPackage, setSelectedBookingPackage] = useState<any>(null);
   const [selectedPilgrimForContract, setSelectedPilgrimForContract] = useState<{pkg: any, pilgrim: any} | null>(null);
   
@@ -308,6 +310,28 @@ const handleSavePackage = async (e: React.FormEvent) => {
     setIsManifestModalOpen(true);
   };
 
+  
+  const handleOperationsUpdate = async (pilgrimId: string, field: string, value: string) => {
+    try {
+      await fetch(`http://localhost:4000/umrah/pilgrims/${pilgrimId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+      });
+      
+      setOperationsPkg((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pilgrims: prev.pilgrims.map((p: any) => p.id === pilgrimId ? { ...p, [field]: value } : p)
+        };
+      });
+      fetchAllData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleUpdatePilgrimData = async (packageId: string, pilgrimIndex: number, field: string, value: string) => {
     const pkg = packages.find(p => p.id === packageId);
     if (!pkg || !pkg.pilgrims || !pkg.pilgrims[pilgrimIndex]) return;
@@ -557,6 +581,10 @@ const handleSavePackage = async (e: React.FormEvent) => {
                           </button>
                           <button onClick={() => openManifestModal(pkg)} className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-md transition border border-blue-100 shadow-sm" title="طباعة وعرض المانيفست">
                             المانيفست
+                          </button>
+                          
+                          <button onClick={() => setOperationsPkg(pkg)} className="px-3 py-1.5 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-600 hover:text-white rounded-md transition border border-purple-100 shadow-sm" title="إدارة التأشيرات وتسكين الغرف">
+                            العمليات (التسكين/تأشيرات)
                           </button>
                           <button onClick={() => openEditModal(pkg)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition" title="تعديل البرنامج">
                             <Edit2 size={16} />
