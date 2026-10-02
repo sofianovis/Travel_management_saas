@@ -305,6 +305,41 @@ const handleSavePackage = async (e: React.FormEvent) => {
     }
   };
 
+  const handleExportExcel = (pkg: any) => {
+    if (!pkg.pilgrims || pkg.pilgrims.length === 0) {
+      alert("لا يوجد معتمرين لتصديرهم في هذا البرنامج.");
+      return;
+    }
+    
+    let csvContent = "\uFEFF";
+    csvContent += "الرقم,الاسم الكامل,رقم الجواز,الجنسية,نوع التسكين,رقم الغرفة,حالة التأشيرة,رقم التأشيرة\n";
+    
+    pkg.pilgrims.forEach((p: any, index: number) => {
+      const roomName = p.roomType === 'quad' ? 'رباعية' : p.roomType === 'triple' ? 'ثلاثية' : p.roomType === 'double' ? 'ثنائية' : 'غير محدد';
+      const row = [
+        index + 1,
+        `"${p.name || ""}"`,
+        `"${p.passport || ""}"`,
+        `"${p.nationality || "جزائري"}"`,
+        `"${roomName}"`,
+        `"${p.roomNumber || ""}"`,
+        `"${p.visaStatus || "قيد المعالجة"}"`,
+        `"${p.visaNumber || ""}"`
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `قائمة_المعتمرين_${pkg.name.replace(/ /g, '_')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const openManifestModal = (pkg: any) => {
     setSelectedPackageForManifest(pkg);
     setIsManifestModalOpen(true);
@@ -582,8 +617,11 @@ const handleSavePackage = async (e: React.FormEvent) => {
                           <button onClick={() => openManifestModal(pkg)} className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded-md transition border border-blue-100 shadow-sm" title="طباعة وعرض المانيفست">
                             المانيفست
                           </button>
+                          <button onClick={(e) => { e.stopPropagation(); handleExportExcel(pkg); }} className="px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-600 hover:text-white rounded-md transition border border-emerald-100 shadow-sm" title="تصدير إلى إكسل (CSV)">
+                            تصدير Excel
+                          </button>
                           
-                          <button onClick={() => setOperationsPkg(pkg)} className="px-3 py-1.5 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-600 hover:text-white rounded-md transition border border-purple-100 shadow-sm" title="إدارة التأشيرات وتسكين الغرف">
+                          <button onClick={(e) => { e.stopPropagation(); setOperationsPkg(pkg); }} className="px-3 py-1.5 text-xs font-bold text-purple-600 bg-purple-50 hover:bg-purple-600 hover:text-white rounded-md transition border border-purple-100 shadow-sm" title="إدارة التأشيرات وتسكين الغرف">
                             العمليات (التسكين/تأشيرات)
                           </button>
                           <button onClick={() => openEditModal(pkg)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition" title="تعديل البرنامج">
@@ -1153,6 +1191,9 @@ const handleSavePackage = async (e: React.FormEvent) => {
         </div>
       )}
     </div>
+      {operationsPkg && (
+        <UmrahOperationsModal pkg={operationsPkg} onClose={() => setOperationsPkg(null)} onUpdatePilgrim={handleOperationsUpdate} />
+      )}
 
     {/* Print-Only Layouts */}
     <div className="hidden print:block w-full bg-white text-black font-sans text-sm" dir="rtl">

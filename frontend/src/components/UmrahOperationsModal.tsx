@@ -26,8 +26,9 @@ export function UmrahOperationsModal({
   };
 
   // 1. Visa Stats
-  const pilgrims = pkg.pilgrims || [];
-  const filteredPilgrims = pilgrims.filter((p: any) => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.passport?.toLowerCase().includes(searchQuery.toLowerCase()));
+  const pilgrims = pkg?.pilgrims || [];
+  if (!pkg) return null;
+  const filteredPilgrims = pilgrims.filter((p: any) => (p.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || (p.passport || "").toString().toLowerCase().includes(searchQuery.toLowerCase()));
   
   const visaStats = {
     total: pilgrims.length,
