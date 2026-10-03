@@ -6,204 +6,274 @@ datasource db {
   provider = "postgresql"
 }
 
-// ----------------------------------------------------
+// ====================================================
+// SAAS CORE MODELS (Multi-Tenancy)
+// ====================================================
+
+model Agency {
+  id              String    @id @default(uuid())
+  name            String
+  subdomain       String    @unique
+  plan            String    @default("basic") // basic, pro, enterprise
+  subscriptionEnd DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  // Relations
+  branches            Branch[]
+  users               User[]
+  settings            AgencySettings?
+  customers           Customer[]
+  umrahPackages       UmrahPackage[]
+  financeTransactions FinanceTransaction[]
+  generalBookings     GeneralBooking[]
+}
+
+model Branch {
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  name      String
+  address   String?
+  phone     String?
+  isMain    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  users               User[]
+  financeTransactions FinanceTransaction[]
+  generalBookings     GeneralBooking[]
+}
+
+model User {
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  email     String   @unique
+  password  String // Hashed
+  role      String   @default("employee") // superadmin (null agency), admin (agency owner), branch_manager, employee
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ====================================================
 // 1. Settings (Agency Profile & Config)
-// ----------------------------------------------------
+// ====================================================
 model AgencySettings {
-  id            String   @id @default(uuid())
-  agencyName    String   @default("ط¸ث†ط¸ئ’ط·آ§ط¸â€‍ط·آ© ط·آ§ط¸â€‍ط¸â€ ط·آ²ط¸â€‍ط·آ§ط·طŒ ط¸â€‍ط¸â€‍ط·آ³ط¸ظ¹ط·آ§ط·آ­ط·آ© ط¸ث†ط·آ§ط¸â€‍ط·آ³ط¸ظ¾ط·آ±")
+  id       String @id @default(uuid())
+  agencyId String @unique
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  agencyName    String   @default("وكالة النزلاء للسياحة والسفر")
   phone         String?
   address       String?
-  rc            String?  // ط·آ§ط¸â€‍ط·آ³ط·آ¬ط¸â€‍ ط·آ§ط¸â€‍ط·ع¾ط·آ¬ط·آ§ط·آ±ط¸ظ¹
-  nif           String?  // ط·آ§ط¸â€‍ط·آ±ط¸â€ڑط¸â€¦ ط·آ§ط¸â€‍ط·آ¬ط·آ¨ط·آ§ط·آ¦ط¸ظ¹
-  nis           String?  // ط·آ±ط¸â€ڑط¸â€¦ ط·آ§ط¸â€‍ط·آ¥ط·آ­ط·آµط·آ§ط·طŒ
-  nai           String?  // ط·آ±ط¸â€ڑط¸â€¦ ط·آ§ط¸â€‍ط·آ§ط·آ¹ط·ع¾ط¸â€¦ط·آ§ط·آ¯
-  logoUrl       String?  // ط·آ±ط·آ§ط·آ¨ط·آ· ط·آ§ط¸â€‍ط·آ´ط·آ¹ط·آ§ط·آ±
+  rc            String?
+  nif           String?
+  nis           String?
+  nai           String?
+  logoUrl       String?
   currency      String   @default("DZD")
   monthlyTarget Float    @default(5000000)
   updatedAt     DateTime @updatedAt
 }
 
-// ----------------------------------------------------
+// ====================================================
 // 2. Customers
-// ----------------------------------------------------
+// ====================================================
 model Customer {
-  id        String   @id @default(uuid())
-  
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
   // Names
-  name            String
-  nameLatin       String?
-  firstName       String?
-  lastName        String?
-  firstNameLatin  String?
-  lastNameLatin   String?
-  
+  name           String
+  nameLatin      String?
+  firstName      String?
+  lastName       String?
+  firstNameLatin String?
+  lastNameLatin  String?
+
   // Contacts
-  phone           String?
-  whatsapp        String?
-  email           String?
-  
+  phone    String?
+  whatsapp String?
+  email    String?
+
   // Classification
-  type            String   @default("ط¹ط§ط¯ظٹ")
-  tags            String[] @default([])
-  joined          DateTime @default(now())
+  type   String   @default("عادي")
+  tags   String[] @default([])
+  joined DateTime @default(now())
 
   // Demographics
-  gender          String?
-  address         String?
-  wilaya          String?
-  bloodType       String?
-  nationality     String?
-  dateOfBirth     String?
-  placeOfBirth    String?
-  nin             String?
-  
+  gender       String?
+  address      String?
+  wilaya       String?
+  bloodType    String?
+  nationality  String?
+  dateOfBirth  String?
+  placeOfBirth String?
+  nin          String?
+
   // Passport
-  passport        String?
-  passportIssue   String?
-  passportExpiry  String?
-  
+  passport       String?
+  passportIssue  String?
+  passportExpiry String?
+
   // Mahram
-  mahramName      String?
-  mahramRelation  String?
-  
+  mahramName     String?
+  mahramRelation String?
+
   // Health
-  healthIssues    String?
-  notes           String?
-  
+  healthIssues String?
+  notes        String?
+
   // Family relationships
-  familyId        String?
-  familyRelation  String?
-  
-  // Media (Images as base64 or paths)
+  familyId       String?
+  familyRelation String?
+
+  // Media 
   passportImageName String?
   personalPhotoName String?
   personalPhotoData String?
   passportImageData String?
-  
-  // Follow ups
-  followUps         Json?
+
+  followUps Json?
 
   financeTransactions FinanceTransaction[]
   pilgrims            Pilgrim[]
-  generalBookings   GeneralBooking[]
+  generalBookings     GeneralBooking[]
 }
 
-// ----------------------------------------------------
+// ====================================================
 // 3. Umrah & Hajj Packages
-// ----------------------------------------------------
+// ====================================================
 model UmrahPackage {
-  id            String   @id @default(uuid())
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
   name          String
-  status        String   @default("ط¸â€¦ط¸ظ¾ط·ع¾ط¸ث†ط·آ­") // ط¸â€¦ط¸ظ¾ط·ع¾ط¸ث†ط·آ­, ط¸â€¦ط·ط›ط¸â€‍ط¸â€ڑ, ط¸â€¦ط¸ئ’ط·ع¾ط¸â€¦ط¸â€‍
+  status        String  @default("مسودة")
   flight        String?
-  departure     String?  // YYYY-MM-DD
+  departure     String?
   departureTime String?
   departurePort String?
-  returnDate    String?  // YYYY-MM-DD
+  returnDate    String?
   returnTime    String?
   arrivalPort   String?
-  
-  capacity      Int      @default(50)
-  
+
+  capacity Int @default(50)
+
   // Prices
-  priceQuad     Float?
-  priceTriple   Float?
-  priceDouble   Float?
-  
+  priceQuad   Float?
+  priceTriple Float?
+  priceDouble Float?
+
   // Costs
-  costFlight    Float?
-  costHotel     Float?
-  costVisa      Float?
+  costFlight Float?
+  costHotel  Float?
+  costVisa   Float?
 
   // Hotels & Team
-  makkahHotel   String?
-  madinahHotel  String?
-  guideName     String?
+  makkahHotel  String?
+  madinahHotel String?
+  guideName    String?
 
-  pilgrims      Pilgrim[]
+  pilgrims Pilgrim[]
 }
 
-// ----------------------------------------------------
+// ====================================================
 // 4. Pilgrims (Manifest Entries)
-// ----------------------------------------------------
+// ====================================================
 model Pilgrim {
-  id          String   @id @default(uuid())
-  packageId   String
-  package     UmrahPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
-  
-  // A pilgrim might be linked to a customer who paid for them
+  id        String       @id @default(uuid())
+  packageId String
+  package   UmrahPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
   linkedCustomerId String?
   customer         Customer? @relation(fields: [linkedCustomerId], references: [id])
 
   name        String
   dateOfBirth String?
-  nationality String   @default("ط·آ¬ط·آ²ط·آ§ط·آ¦ط·آ±ط¸ظ¹")
+  nationality String  @default("جزائري")
   passport    String?
-  
-  visaStatus  String   @default("ط·آ¨ط·آ¯ط¸ث†ط¸â€ ") // ط·آ¬ط¸ث†ط·آ§ط·آ² ط¸â€¦ط·آ³ط·ع¾ط¸â€‍ط¸â€¦, ط¸ظ¾ط¸ظ¹ ط·آ§ط¸â€‍ط·آ³ط¸ظ¾ط·آ§ط·آ±ط·آ©, ط·آ¬ط·آ§ط¸â€،ط·آ²ط·آ©
-  visaNumber  String?
 
-  roomType    String   @default("quad") // quad, triple, double
-  roomNumber  String?
-  busNumber   String?
+  visaStatus String  @default("قيد المعالجة")
+  visaNumber String?
 
-  pricePaid   Float    @default(0)
+  roomType   String  @default("quad")
+  roomNumber String?
+  busNumber  String?
+
+  pricePaid Float @default(0)
 }
 
-// ----------------------------------------------------
+// ====================================================
 // 5. Finance Transactions
-// ----------------------------------------------------
+// ====================================================
 model FinanceTransaction {
-  id           String   @id @default(uuid())
-  type         String   // دخل, مصروف
-  date         String   // YYYY-MM-DD
-  category     String   // طيران, عمرة, تشغيلية, موردين...
-  amount          Float
-    cost            Float    @default(0)
-  method       String   @default("Cash")
-  status       String   @default("مؤكد")
-  ref          String?
-  notes        String?
-  
-  supplierName String?  // Only for expenses
-  
-  // Only for income (customer payment)
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  type     String // مدخول, مصروف
+  date     String
+  category String
+  amount   Float
+  cost     Float   @default(0)
+  method   String  @default("Cash")
+  status   String  @default("مؤكد")
+  ref      String?
+  notes    String?
+
+  supplierName String?
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// ====================================================
+// 6. General Bookings (Flights, Hotels, Visas)
+// ====================================================
+model GeneralBooking {
+  id       String @id @default(uuid())
+  agencyId String
+  agency   Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
   customerId   String?
   customer     Customer? @relation(fields: [customerId], references: [id])
-  
-  createdAt    DateTime @default(now())
-}
+  customerName String
+  phone        String?
 
+  type        String
+  destination String?
+  provider    String?
+  date        String?
+  returnDate  String?
+  pnr         String?
 
+  status        String  @default("قيد المعالجة")
+  paymentStatus String  @default("غير مدفوع")
+  amount        Float   @default(0)
+  paidAmount    Float   @default(0)
+  cost          Float   @default(0)
+  notes         String?
+  paymentMethod String?
+  passengers    String?
+  attachments   String?
 
-
-// ----------------------------------------------------
-// 6. General Bookings (Flights, Hotels, Visas)
-// ----------------------------------------------------
-model GeneralBooking {
-  id             String   @id @default(uuid())
-  customerId     String?
-  customer       Customer? @relation(fields: [customerId], references: [id])
-  customerName   String   
-  phone          String?
-
-  type           String   
-  destination    String?
-  provider       String?  
-  date           String?  
-  returnDate     String?  
-  pnr            String?
-
-  status         String   @default("��� ��������") 
-  paymentStatus  String   @default("��� �����") 
-  amount         Float    @default(0)
-  paidAmount     Float    @default(0)
-  cost           Float    @default(0)
-  notes          String?
-  paymentMethod  String?
-  passengers     String?
-  attachments    String?
-
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 }
