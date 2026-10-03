@@ -5,42 +5,36 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class CustomersService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: any) {
-    if (!data.id) {
-      data.id = `CUST-${Math.floor(Math.random() * 90) + 10}-${Math.floor(Math.random() * 900) + 100}`;
-    }
-    return this.prisma.customer.create({ data });
+  create(data: any, agencyId: string, branchId: string) {
+    return this.prisma.customer.create({ 
+      data: { ...data, agencyId, branchId } 
+    });
   }
 
-  findAll() {
+  findAll(agencyId: string) {
     return this.prisma.customer.findMany({
-      orderBy: { joined: 'desc' },
-      include: {
-        financeTransactions: true,
-      }
+      where: { agencyId },
+      include: { financeTransactions: true },
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.customer.findUnique({ 
-      where: { id },
-      include: {
-        financeTransactions: true,
-        pilgrims: { include: { package: true } }
-      }
+  findOne(id: string, agencyId: string) {
+    return this.prisma.customer.findFirst({ 
+      where: { id, agencyId },
+      include: { financeTransactions: true },
     });
   }
 
-  update(id: string, data: any) {
-    return this.prisma.customer.update({
-      where: { id },
+  update(id: string, data: any, agencyId: string) {
+    return this.prisma.customer.updateMany({
+      where: { id, agencyId },
       data,
     });
   }
 
-  remove(id: string) {
-    return this.prisma.customer.delete({
-      where: { id },
+  remove(id: string, agencyId: string) {
+    return this.prisma.customer.deleteMany({
+      where: { id, agencyId },
     });
   }
 }

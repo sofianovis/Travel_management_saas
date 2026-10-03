@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect, useRef } from "react";
 import { Bell, Search, Menu, Users, Plane, CreditCard, Ticket } from "lucide-react";
@@ -14,12 +15,26 @@ export function Navbar() {
   const router = useRouter();
 
   const [agencyName, setAgencyName] = useState("وكالة السياحة");
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Read cached settings
-    const s = JSON.parse(localStorage.getItem("elnouzalaa_settings") || "{}");
-    if (s.agencyName) setAgencyName(s.agencyName);
-  }, []);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    } else {
+      const u = localStorage.getItem("user");
+      if (u) {
+        const parsed = JSON.parse(u);
+        setUser(parsed);
+      }
+    }
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    router.push("/login");
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -48,10 +63,10 @@ export function Navbar() {
         
         // Fetch all needed entities
         const [cRes, pRes, bRes, fRes] = await Promise.all([
-          fetch("http://localhost:4000/customers"),
-          fetch("http://localhost:4000/umrah"),
-          fetch("http://localhost:4000/bookings"),
-          fetch("http://localhost:4000/finance")
+          apiFetch("http://localhost:4000/customers"),
+          apiFetch("http://localhost:4000/umrah"),
+          apiFetch("http://localhost:4000/bookings"),
+          apiFetch("http://localhost:4000/finance")
         ]);
 
         const customers = await cRes.json();
@@ -187,9 +202,17 @@ export function Navbar() {
         <div className="h-8 w-px bg-gray-200 mx-2 hidden md:block"></div>
         
         <div className="text-left hidden md:block">
-          <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{agencyName}</p>
-          <p className="text-[10px] text-primary text-right font-bold">المدير العام</p>
+          <p className="text-sm font-bold text-gray-900 truncate max-w-[150px]">{user?.name || "تحميل..."}</p>
+          <p className="text-[10px] text-primary text-right font-bold capitalize">{user?.role || "مستخدم"}</p>
         </div>
+
+        <button 
+          onClick={handleLogout}
+          className="mr-2 p-2 text-gray-400 hover:text-red-600 transition bg-gray-50 rounded-full hover:bg-red-50"
+          title="تسجيل الخروج"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        </button>
       </div>
     </header>
   );

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -27,11 +28,11 @@ export default function Home() {
     const fetchDashboardData = async () => {
       try {
         const [fRes, cRes, pRes, bRes, sRes] = await Promise.all([
-          fetch("http://localhost:4000/finance", { cache: "no-store" }),
-          fetch("http://localhost:4000/customers", { cache: "no-store" }),
-          fetch("http://localhost:4000/umrah", { cache: "no-store" }),
-          fetch("http://localhost:4000/bookings", { cache: "no-store" }),
-          fetch("http://localhost:4000/settings", { cache: "no-store" })
+          apiFetch("http://localhost:4000/finance", { cache: "no-store" }),
+          apiFetch("http://localhost:4000/customers", { cache: "no-store" }),
+          apiFetch("http://localhost:4000/umrah", { cache: "no-store" }),
+          apiFetch("http://localhost:4000/bookings", { cache: "no-store" }),
+          apiFetch("http://localhost:4000/settings", { cache: "no-store" })
         ]);
         
         const fData = await fRes.json();

@@ -5,24 +5,19 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class SettingsService {
   constructor(private prisma: PrismaService) {}
 
-  async getSettings() {
-    let settings = await this.prisma.agencySettings.findFirst();
+  async getSettings(agencyId: string) {
+    let settings = await this.prisma.agencySettings.findUnique({ where: { agencyId } });
     if (!settings) {
       settings = await this.prisma.agencySettings.create({
-        data: {
-          agencyName: 'وكالة النزلاء للسياحة والسفر',
-          currency: 'DZD',
-          monthlyTarget: 5000000,
-        },
+        data: { agencyId, agencyName: "وكالة جديدة" }
       });
     }
     return settings;
   }
 
-  async updateSettings(data: any) {
-    const settings = await this.getSettings();
+  updateSettings(agencyId: string, data: any) {
     return this.prisma.agencySettings.update({
-      where: { id: settings.id },
+      where: { agencyId },
       data,
     });
   }

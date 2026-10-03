@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -40,9 +41,9 @@ export default function CustomersPage() {
   const fetchAllData = async () => {
     try {
       const [custRes, umrahRes, finRes] = await Promise.all([
-        fetch("http://localhost:4000/customers", { cache: "no-store" }),
-        fetch("http://localhost:4000/umrah", { cache: "no-store" }),
-        fetch("http://localhost:4000/finance", { cache: "no-store" })
+        apiFetch("http://localhost:4000/customers", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/umrah", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/finance", { cache: "no-store" })
       ]);
       const [custList, umrahList, finList] = await Promise.all([
         custRes.json(), umrahRes.json(), finRes.json()
@@ -131,14 +132,14 @@ export default function CustomersPage() {
 
     try {
       if (selectedCustomer) {
-        const res = await fetch(`http://localhost:4000/customers/${selectedCustomer.id}`, {
+        const res = await apiFetch(`http://localhost:4000/customers/${selectedCustomer.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formattedData)
         });
         if (res.ok) fetchAllData();
       } else {
-        const res = await fetch(`http://localhost:4000/customers`, {
+        const res = await apiFetch(`http://localhost:4000/customers`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formattedData)
@@ -181,7 +182,7 @@ export default function CustomersPage() {
   const handleDelete = async (id: string) => {
     if (confirm("هل أنت متأكد من مسح ملف هذا العميل؟")) {
       try {
-        await fetch(`http://localhost:4000/customers/${id}`, { method: 'DELETE' });
+        await apiFetch(`http://localhost:4000/customers/${id}`, { method: 'DELETE' });
         fetchAllData();
       } catch (e) {
         alert("خطأ في الاتصال");

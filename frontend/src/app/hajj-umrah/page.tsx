@@ -1,4 +1,6 @@
 "use client";
+import { apiFetch } from "@/lib/api";
+
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -70,9 +72,9 @@ export default function UmrahPage() {
   const fetchAllData = async () => {
     try {
       const [umrahRes, custRes, finRes] = await Promise.all([
-        fetch("http://localhost:4000/umrah", { cache: "no-store" }),
-        fetch("http://localhost:4000/customers", { cache: "no-store" }),
-        fetch("http://localhost:4000/finance", { cache: "no-store" })
+        apiFetch("http://localhost:4000/umrah", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/customers", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/finance", { cache: "no-store" })
       ]);
       const [umrahList, custList, finList] = await Promise.all([
         umrahRes.json(), custRes.json(), finRes.json()
@@ -144,14 +146,14 @@ const handleSavePackage = async (e: React.FormEvent) => {
 
   try {
     if (selectedPackage) {
-      const res = await fetch(`http://localhost:4000/umrah/${selectedPackage.id}`, {
+      const res = await apiFetch(`http://localhost:4000/umrah/${selectedPackage.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData)
       });
       if (res.ok) fetchAllData();
     } else {
-      const res = await fetch(`http://localhost:4000/umrah`, {
+      const res = await apiFetch(`http://localhost:4000/umrah`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData)
@@ -167,7 +169,7 @@ const handleSavePackage = async (e: React.FormEvent) => {
   const handleDelete = async (id: string) => {
     if (confirm("هل أنت متأكد من مسح برنامج العمرة هذا؟ لا يمكن التراجع عن هذه العملية.")) {
       try {
-        await fetch(`http://localhost:4000/umrah/${id}`, { method: 'DELETE' });
+        await apiFetch(`http://localhost:4000/umrah/${id}`, { method: 'DELETE' });
         fetchAllData();
       } catch (err) {
         alert("خطأ");
@@ -232,7 +234,7 @@ const handleSavePackage = async (e: React.FormEvent) => {
     let pricePerPerson = selectedBookingPackage.prices[bookingData.roomType] || 0;
     
     try {
-      const res = await fetch(`http://localhost:4000/umrah/${selectedBookingPackage.id}/book`, {
+      const res = await apiFetch(`http://localhost:4000/umrah/${selectedBookingPackage.id}/book`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -280,7 +282,7 @@ const handleSavePackage = async (e: React.FormEvent) => {
       const amountToRefund = selectedPackageForRemove.prices[canceledPilgrim.roomType] || 0;
 
       try {
-        const res = await fetch(`http://localhost:4000/umrah/${selectedPackageForRemove.id}/cancel-booking`, {
+        const res = await apiFetch(`http://localhost:4000/umrah/${selectedPackageForRemove.id}/cancel-booking`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -348,7 +350,7 @@ const handleSavePackage = async (e: React.FormEvent) => {
   
   const handleOperationsUpdate = async (pilgrimId: string, field: string, value: string) => {
     try {
-      await fetch(`http://localhost:4000/umrah/pilgrims/${pilgrimId}`, {
+      await apiFetch(`http://localhost:4000/umrah/pilgrims/${pilgrimId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })
@@ -400,7 +402,7 @@ const handleSavePackage = async (e: React.FormEvent) => {
 
     // 3. Send update to backend
     try {
-      await fetch(`http://localhost:4000/umrah/pilgrims/${pilgrimId}`, {
+      await apiFetch(`http://localhost:4000/umrah/pilgrims/${pilgrimId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })

@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -25,7 +26,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    fetch("http://localhost:4000/settings")
+    apiFetch("http://localhost:4000/settings")
       .then(res => res.json())
       .then(data => {
         setSettings({
@@ -46,7 +47,7 @@ export default function SettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:4000/settings", {
+      const res = await apiFetch("http://localhost:4000/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

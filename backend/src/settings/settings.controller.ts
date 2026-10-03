@@ -1,17 +1,20 @@
-import { Controller, Get, Body, Put } from '@nestjs/common';
+import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { SettingsService } from './settings.service.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CurrentUser } from '../auth/current-user.decorator.js';
 
+@UseGuards(JwtAuthGuard)
 @Controller('settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
-  getSettings() {
-    return this.settingsService.getSettings();
+  getSettings(@CurrentUser() user: any) {
+    return this.settingsService.getSettings(user.agencyId);
   }
 
-  @Put()
-  updateSettings(@Body() updateData: any) {
-    return this.settingsService.updateSettings(updateData);
+  @Patch()
+  updateSettings(@Body() data: any, @CurrentUser() user: any) {
+    return this.settingsService.updateSettings(user.agencyId, data);
   }
 }

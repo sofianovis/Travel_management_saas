@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -30,8 +31,8 @@ export default function BookingsPage() {
   const fetchAllData = async () => {
     try {
       const [bookRes, custRes] = await Promise.all([
-        fetch("http://localhost:4000/bookings", { cache: "no-store" }),
-        fetch("http://localhost:4000/customers", { cache: "no-store" })
+        apiFetch("http://localhost:4000/bookings", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/customers", { cache: "no-store" })
       ]);
       const bookData = await bookRes.json();
       const custData = await custRes.json();
@@ -59,7 +60,7 @@ export default function BookingsPage() {
     try {
       const method = booking.id && bookings.find((b: any) => b.id === booking.id) ? "PATCH" : "POST";
       const url = method === "PATCH" ? `http://localhost:4000/bookings/${booking.id}` : "http://localhost:4000/bookings";
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(booking)
@@ -82,7 +83,7 @@ export default function BookingsPage() {
   const handleDelete = async (id: string) => {
     if (confirm("�� ��� ����� �� ��� ��� ����ҿ")) {
       try {
-        await fetch(`http://localhost:4000/bookings/${id}`, { method: "DELETE" });
+        await apiFetch(`http://localhost:4000/bookings/${id}`, { method: "DELETE" });
         fetchAllData();
       } catch (e) {
         console.error(e);
@@ -110,7 +111,7 @@ export default function BookingsPage() {
   const handleBulkDelete = async () => {
     if (!confirm(`هل أنت متأكد من حذف ${selectedIds.length} حجوزات؟`)) return;
     try {
-      await Promise.all(selectedIds.map(id => fetch(`http://localhost:4000/bookings/${id}`, { method: "DELETE" })));
+      await Promise.all(selectedIds.map(id => apiFetch(`http://localhost:4000/bookings/${id}`, { method: "DELETE" })));
       setSelectedIds([]);
       fetchAllData();
     } catch (e) { console.error(e); }
@@ -120,7 +121,7 @@ export default function BookingsPage() {
     try {
       await Promise.all(selectedIds.map(id => {
         const b = bookings.find((bk:any) => bk.id === id);
-        return fetch(`http://localhost:4000/bookings/${id}`, {
+        return apiFetch(`http://localhost:4000/bookings/${id}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({...b, status})
         });
@@ -133,7 +134,7 @@ export default function BookingsPage() {
   const submitPartialPayment = async (e: any) => {
     e.preventDefault();
     try {
-      await fetch(`http://localhost:4000/bookings/${paymentPrompt.booking.id}`, {
+      await apiFetch(`http://localhost:4000/bookings/${paymentPrompt.booking.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...paymentPrompt.booking, paymentStatus: "مدفوع جزئياً", paidAmount: parseFloat(paidAmountInput) })
@@ -151,7 +152,7 @@ export default function BookingsPage() {
       return;
     }
     try {
-      await fetch(`http://localhost:4000/bookings/${id}`, {
+      await apiFetch(`http://localhost:4000/bookings/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...booking, paymentStatus: newStatus, paidAmount: newStatus === "مدفوع بالكامل" ? booking.amount : 0 })
       });
@@ -162,7 +163,7 @@ export default function BookingsPage() {
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       const booking = bookings.find((b: any) => b.id === id);
-      const res = await fetch(`http://localhost:4000/bookings/${id}`, {
+      const res = await apiFetch(`http://localhost:4000/bookings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...booking, status: newStatus })

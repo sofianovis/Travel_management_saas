@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
@@ -41,9 +42,9 @@ export default function FinancePage() {
   const fetchAllData = async () => {
     try {
       const [finRes, custRes, umrahRes] = await Promise.all([
-        fetch("http://localhost:4000/finance", { cache: "no-store" }),
-        fetch("http://localhost:4000/customers", { cache: "no-store" }),
-        fetch("http://localhost:4000/umrah", { cache: "no-store" })
+        apiFetch("http://localhost:4000/finance", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/customers", { cache: "no-store" }),
+        apiFetch("http://localhost:4000/umrah", { cache: "no-store" })
       ]);
       const [finList, custList, umrahList] = await Promise.all([
         finRes.json(), custRes.json(), umrahRes.json()
@@ -80,7 +81,7 @@ export default function FinancePage() {
         amount: parseFloat(formData.amount) || 0
       };
       
-      const res = await fetch("http://localhost:4000/finance", {
+      const res = await apiFetch("http://localhost:4000/finance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formattedData)
@@ -98,7 +99,7 @@ export default function FinancePage() {
   const handleDelete = async (id: string) => {
     if (confirm("هل أنت متأكد من مسح هذه الحركة المالية؟ سيؤثر هذا على الميزانية العامة.")) {
       try {
-        await fetch(`http://localhost:4000/finance/${id}`, { method: 'DELETE' });
+        await apiFetch(`http://localhost:4000/finance/${id}`, { method: 'DELETE' });
         fetchAllData();
       } catch (err) {
         alert("خطأ في الاتصال بالخادم");

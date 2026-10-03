@@ -1,32 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { FinanceService } from './finance.service.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CurrentUser } from '../auth/current-user.decorator.js';
 
+@UseGuards(JwtAuthGuard)
 @Controller('finance')
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(private readonly service: FinanceService) {}
 
   @Post()
-  create(@Body() createFinanceDto: any) {
-    return this.financeService.create(createFinanceDto);
+  create(@Body() data: any, @CurrentUser() user: any) {
+    return this.service.create(data, user.agencyId, user.branchId);
   }
 
   @Get()
-  findAll() {
-    return this.financeService.findAll();
+  findAll(@CurrentUser() user: any) {
+    return this.service.findAll(user.agencyId);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.financeService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.service.findOne(id, user.agencyId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateFinanceDto: any) {
-    return this.financeService.update(id, updateFinanceDto);
+  update(@Param('id') id: string, @Body() data: any, @CurrentUser() user: any) {
+    return this.service.update(id, data, user.agencyId);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.financeService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.service.remove(id, user.agencyId);
   }
 }
