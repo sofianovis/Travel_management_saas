@@ -1,16 +1,17 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaClient } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service.js';
 import * as bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private prisma: PrismaService
+  ) {}
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({ where: { email } });
     if (user && bcrypt.compareSync(pass, user.password)) {
       const { password, ...result } = user;
       return result;
@@ -39,22 +40,20 @@ export class AuthService {
     };
   }
 
-  // A method for creating a new Agency (SaaS Registration)
   async registerAgency(data: any) {
-    const existingAgency = await prisma.agency.findUnique({ where: { subdomain: data.subdomain } });
+    const existingAgency = await this.prisma.agency.findUnique({ where: { subdomain: data.subdomain } });
     if (existingAgency) {
       throw new BadRequestException('اسم النطاق الفرعي محجوز بالفعل.');
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
+    const existingUser = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existingUser) {
       throw new BadRequestException('البريد الإلكتروني مستخدم بالفعل.');
     }
 
     const hashedPassword = bcrypt.hashSync(data.password, 10);
 
-    // Create Agency, Branch, and Admin User in a transaction
-    const newAgency = await prisma.$transaction(async (tx) => {
+    const newAgency = await this.prisma.$transaction(async (tx) => {
       const agency = await tx.agency.create({
         data: {
           name: data.agencyName,
