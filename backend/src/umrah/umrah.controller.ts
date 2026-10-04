@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { UmrahService } from './umrah.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
@@ -10,17 +10,19 @@ export class UmrahController {
 
   @Post()
   create(@Body() data: any, @CurrentUser() user: any) {
-    return this.umrahService.create(data, user.agencyId);
+    return this.umrahService.create(data, user.agencyId, user.branchId);
   }
 
   @Get()
-  findAll(@CurrentUser() user: any) {
-    return this.umrahService.findAll(user.agencyId);
+  findAll(@Query('branchId') branchId: string, @CurrentUser() user: any) {
+    const filterBranch = user.role !== 'admin' ? user.branchId : branchId;
+    return this.umrahService.findAll(user.agencyId, filterBranch);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.umrahService.findOne(id, user.agencyId);
+    const filterBranch = user.role !== 'admin' ? user.branchId : undefined;
+    return this.umrahService.findOne(id, user.agencyId, filterBranch);
   }
 
   @Patch(':id')

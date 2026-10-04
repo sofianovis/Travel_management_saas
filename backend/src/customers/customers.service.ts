@@ -11,16 +11,23 @@ export class CustomersService {
     });
   }
 
-  findAll(agencyId: string) {
+  findAll(agencyId: string, branchId?: string) {
+    const where: any = { agencyId };
+    if (branchId) where.branchId = branchId;
+    
     return this.prisma.customer.findMany({
-      where: { agencyId },
+      where,
       include: { financeTransactions: true },
+      orderBy: { joined: 'desc' }
     });
   }
 
-  findOne(id: string, agencyId: string) {
+  findOne(id: string, agencyId: string, branchId?: string) {
+    const where: any = { id, agencyId };
+    if (branchId) where.branchId = branchId;
+
     return this.prisma.customer.findFirst({ 
-      where: { id, agencyId },
+      where,
       include: { financeTransactions: true },
     });
   }

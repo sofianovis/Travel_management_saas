@@ -11,17 +11,20 @@ export class FinanceService {
     });
   }
 
-  findAll(agencyId: string) {
+  findAll(agencyId: string, branchId?: string) {
+    const where: any = { agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.financeTransaction.findMany({
-      where: { agencyId },
-      
+      where,
+      orderBy: { date: 'desc' }
     });
   }
 
-  findOne(id: string, agencyId: string) {
+  findOne(id: string, agencyId: string, branchId?: string) {
+    const where: any = { id, agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.financeTransaction.findFirst({ 
-      where: { id, agencyId },
-      
+      where,
     });
   }
 

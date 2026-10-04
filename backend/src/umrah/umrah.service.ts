@@ -5,21 +5,25 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class UmrahService {
   constructor(private prisma: PrismaService) {}
 
-  create(data: any, agencyId: string) {
-    return this.prisma.umrahPackage.create({ data: { ...data, agencyId } });
+  create(data: any, agencyId: string, branchId: string) {
+    return this.prisma.umrahPackage.create({ data: { ...data, agencyId, branchId } });
   }
 
-  findAll(agencyId: string) {
+  findAll(agencyId: string, branchId?: string) {
+    const where: any = { agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.umrahPackage.findMany({ 
-      where: { agencyId },
+      where,
       include: { pilgrims: true },
       orderBy: { departure: 'desc' }
     });
   }
 
-  findOne(id: string, agencyId: string) {
+  findOne(id: string, agencyId: string, branchId?: string) {
+    const where: any = { id, agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.umrahPackage.findFirst({ 
-      where: { id, agencyId },
+      where,
       include: { pilgrims: true } 
     });
   }

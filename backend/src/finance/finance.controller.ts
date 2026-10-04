@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { FinanceService } from './finance.service.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
@@ -14,13 +14,15 @@ export class FinanceController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: any) {
-    return this.service.findAll(user.agencyId);
+  findAll(@Query('branchId') branchId: string, @CurrentUser() user: any) {
+    const filterBranch = user.role !== 'admin' ? user.branchId : branchId;
+    return this.service.findAll(user.agencyId, filterBranch);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.service.findOne(id, user.agencyId);
+    const filterBranch = user.role !== 'admin' ? user.branchId : undefined;
+    return this.service.findOne(id, user.agencyId, filterBranch);
   }
 
   @Patch(':id')

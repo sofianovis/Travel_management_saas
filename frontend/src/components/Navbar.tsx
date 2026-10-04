@@ -16,6 +16,8 @@ export function Navbar() {
 
   const [agencyName, setAgencyName] = useState("وكالة السياحة");
   const [user, setUser] = useState<any>(null);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -26,9 +28,27 @@ export function Navbar() {
       if (u) {
         const parsed = JSON.parse(u);
         setUser(parsed);
+        if (parsed.role === "admin") {
+          apiFetch("http://localhost:4000/settings/branches")
+            .then(res => res.json())
+            .then(data => setBranches(data || []));
+        }
+        const savedBranch = localStorage.getItem("selectedBranchId");
+        if (savedBranch) setSelectedBranch(savedBranch);
       }
     }
   }, [router]);
+
+  const handleBranchChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedBranch(val);
+    if (val) {
+      localStorage.setItem("selectedBranchId", val);
+    } else {
+      localStorage.removeItem("selectedBranchId");
+    }
+    window.location.reload();
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -194,6 +214,21 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        {user?.role === "admin" && branches.length > 0 && (
+          <div className="hidden md:flex items-center ml-2">
+            <select 
+              value={selectedBranch}
+              onChange={handleBranchChange}
+              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary font-bold text-gray-700"
+            >
+              <option value="">كافة الفروع</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <button className="relative p-2 text-gray-400 hover:text-primary transition bg-gray-50 rounded-full hover:bg-red-50">
           <Bell size={20} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>

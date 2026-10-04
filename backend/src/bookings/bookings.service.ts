@@ -11,17 +11,20 @@ export class BookingsService {
     });
   }
 
-  findAll(agencyId: string) {
+  findAll(agencyId: string, branchId?: string) {
+    const where: any = { agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.generalBooking.findMany({
-      where: { agencyId },
-      
+      where,
+      orderBy: { createdAt: 'desc' }
     });
   }
 
-  findOne(id: string, agencyId: string) {
+  findOne(id: string, agencyId: string, branchId?: string) {
+    const where: any = { id, agencyId };
+    if (branchId) where.branchId = branchId;
     return this.prisma.generalBooking.findFirst({ 
-      where: { id, agencyId },
-      
+      where,
     });
   }
 
