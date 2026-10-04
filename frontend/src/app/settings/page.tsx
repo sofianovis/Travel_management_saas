@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
-import { Save, Building2, Phone, MapPin, Mail, Target, Image as ImageIcon, Plus, Trash2, Edit2, CheckCircle2, Map } from "lucide-react";
+import { Save, Building2, Phone, MapPin, Mail, Target, Image as ImageIcon, Plus, Trash2, Edit2, CheckCircle2, UserPlus, Users } from "lucide-react";
 
 export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -21,6 +21,10 @@ export default function SettingsPage() {
   // Branch Form
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [branchForm, setBranchForm] = useState({ id: "", name: "", address: "", phone: "" });
+
+  // User Form
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userForm, setUserForm] = useState({ id: "", name: "", email: "", password: "", role: "employee", branchId: "" });
 
   useEffect(() => {
     setIsMounted(true);
@@ -95,8 +99,38 @@ export default function SettingsPage() {
   };
 
   const handleDeleteBranch = async (id: string) => {
-    if (confirm("هل أنت متأكد من حذف هذا الفرع؟")) {
+    if (confirm("هل أنت متأكد من حذف هذا الفرع؟ لا يمكن التراجع عن هذا الإجراء.")) {
       await apiFetch(`http://localhost:4000/settings/branches/${id}`, { method: "DELETE" });
+      fetchData();
+    }
+  };
+
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (userForm.id) {
+        await apiFetch(`http://localhost:4000/settings/users/${userForm.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: userForm.name, email: userForm.email, password: userForm.password, role: userForm.role, branchId: userForm.branchId })
+        });
+      } else {
+        await apiFetch(`http://localhost:4000/settings/users`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: userForm.name, email: userForm.email, password: userForm.password, role: userForm.role, branchId: userForm.branchId })
+        });
+      }
+      setShowUserModal(false);
+      fetchData();
+      setShowToast("تم حفظ الموظف بنجاح");
+      setTimeout(() => setShowToast(""), 3000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    if (confirm("هل أنت متأكد من حذف هذا الموظف نهائياً؟")) {
+      await apiFetch(`http://localhost:4000/settings/users/${id}`, { method: "DELETE" });
       fetchData();
     }
   };
@@ -125,12 +159,17 @@ export default function SettingsPage() {
                 <Plus size={20} /> إضافة فرع جديد
               </button>
             )}
+            {activeTab === 'users' && (
+              <button onClick={() => { setUserForm({id: '', name: '', email: '', password: '', role: 'employee', branchId: branches[0]?.id || ''}); setShowUserModal(true); }} className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold shadow-lg shadow-primary/30 transition">
+                <UserPlus size={20} /> إضافة موظف جديد
+              </button>
+            )}
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6 p-2 flex gap-2">
             <button onClick={() => setActiveTab('general')} className={`flex-1 py-3 font-bold rounded-lg transition ${activeTab === 'general' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}>الإعدادات العامة</button>
             <button onClick={() => setActiveTab('branches')} className={`flex-1 py-3 font-bold rounded-lg transition ${activeTab === 'branches' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}>إدارة الفروع</button>
-            <button onClick={() => setActiveTab('users')} className={`flex-1 py-3 font-bold rounded-lg transition ${activeTab === 'users' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}>الموظفون (قريباً)</button>
+            <button onClick={() => setActiveTab('users')} className={`flex-1 py-3 font-bold rounded-lg transition ${activeTab === 'users' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50'}`}>الموظفون والصلاحيات</button>
           </div>
 
           {activeTab === 'general' && (
@@ -191,6 +230,43 @@ export default function SettingsPage() {
             </div>
           )}
 
+          {activeTab === 'users' && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <table className="w-full text-right">
+                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold text-sm">
+                  <tr>
+                    <th className="p-4">الموظف</th>
+                    <th className="p-4">الفرع</th>
+                    <th className="p-4 text-center">المنصب (الصلاحية)</th>
+                    <th className="p-4 text-center">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 text-sm">
+                  {users.map(user => (
+                    <tr key={user.id} className="hover:bg-gray-50 transition">
+                      <td className="p-4">
+                        <p className="font-bold text-gray-900">{user.name}</p>
+                        <p className="text-gray-500 text-xs">{user.email}</p>
+                      </td>
+                      <td className="p-4 text-gray-600">{user.branch?.name || '-'}</td>
+                      <td className="p-4 text-center">
+                        {user.role === 'admin' ? <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">المدير العام</span> : 
+                         user.role === 'branch_manager' ? <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">مدير فرع</span> :
+                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">موظف مبيعات</span>}
+                      </td>
+                      <td className="p-4 flex justify-center gap-2">
+                        <button onClick={() => { setUserForm({...user, password: ''}); setShowUserModal(true); }} className="p-2 text-gray-400 hover:text-primary transition bg-white rounded-lg shadow-sm border border-gray-200"><Edit2 size={16} /></button>
+                        {user.role !== 'admin' && (
+                          <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-gray-400 hover:text-red-500 transition bg-white rounded-lg shadow-sm border border-gray-200"><Trash2 size={16} /></button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
         </div>
       </main>
 
@@ -217,6 +293,53 @@ export default function SettingsPage() {
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setShowBranchModal(false)} className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition">إلغاء</button>
                 <button type="submit" className="flex-1 px-4 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition">حفظ الفرع</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* User Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">{userForm.id ? "تعديل الموظف" : "إضافة موظف جديد"}</h2>
+            </div>
+            <form onSubmit={handleSaveUser} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">الاسم الكامل</label>
+                <input required type="text" value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-gray-50 focus:bg-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">البريد الإلكتروني (للدخول)</label>
+                <input required type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-gray-50 focus:bg-white" dir="ltr" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">{userForm.id ? "كلمة المرور (اتركها فارغة لعدم التغيير)" : "كلمة المرور"}</label>
+                <input type="password" required={!userForm.id} value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-gray-50 focus:bg-white" dir="ltr" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">الفرع التابع له</label>
+                  <select required value={userForm.branchId} onChange={e => setUserForm({...userForm, branchId: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-gray-50 focus:bg-white">
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">الصلاحية</label>
+                  <select required value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary bg-gray-50 focus:bg-white">
+                    <option value="employee">موظف مبيعات</option>
+                    <option value="branch_manager">مدير فرع</option>
+                    <option value="admin">مدير عام (للوكالة)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setShowUserModal(false)} className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition">إلغاء</button>
+                <button type="submit" className="flex-1 px-4 py-3 bg-primary text-white font-bold rounded-xl shadow-lg shadow-primary/30 hover:bg-primary-dark transition">حفظ الموظف</button>
               </div>
             </form>
           </div>
